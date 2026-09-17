@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movie Content Generator</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0b0d14;
+      color: #fff;
+      padding: 30px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+
+    input {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #2b3140;
+      background: #121722;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 14px 20px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #f5a623;
+      color: #111;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .card {
+      background: #121722;
+      border: 1px solid #242b39;
+      border-radius: 16px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .movie-grid {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 24px;
+    }
+
+    .poster {
+      width: 100%;
+      border-radius: 14px;
+      display: block;
+    }
+
+    .backdrop {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 14px;
+      display: block;
+    }
+
+    .meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+
+    .pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #1d2432;
+      border: 1px solid #2e3748;
+      color: #d9deea;
+      font-size: 14px;
+    }
+
+    .overview {
+      line-height: 1.7;
+      color: #d5d9e2;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      margin-top: 12px;
+      padding: 15px;
+      border-radius: 12px;
+      border: 1px solid #2b3140;
+      background: #0c111b;
+      color: #fff;
+      resize: vertical;
+      font-family: Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .copy-row {
+      margin-top: 10px;
+    }
+
+    .error {
+      color: #ff7d7d;
+    }
+
+    .loading {
+      color: #f5a623;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 15px;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      .movie-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .poster {
+        max-width: 320px;
+        margin: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>Movie Content Generator</h1>
+    <div class="sub">
+      Search any movie and generate ready content for your Blogger post.
+    </div>
+
+    <div class="search-box">
+      <input
+        id="movieName"
+        type="text"
+        placeholder="Example: Doraemon Nobita and the New Steel Troops"
+      />
+      <button onclick="searchMovie()">Search Movie</button>
+    </div>
+
+    <div id="result"></div>
+
+  </div>
+
+<script>
+
+  // ======================================================
+  // PASTE YOUR NEW TMDB API KEY HERE
+  // ======================================================
+
+  const API_KEY = "2453b53d5bae160b2c2b18d4d80791ba";
+
+  // ======================================================
+
+  const IMAGE_BASE = "https://image.tmdb.org/t/p/original";
+  const POSTER_BASE = "https://image.tmdb.org/t/p/w500";
+
+  document
+    .getElementById("movieName")
+    .addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        searchMovie();
+      }
+    });
+
+  async function searchMovie() {
+
+    const movieName = document
+      .getElementById("movieName")
+      .value
+      .trim();
+
+    const result = document.getElementById("result");
+
+    if (!movieName) {
+      result.innerHTML =
+        '<div class="card error">Please enter a movie name.</div>';
+      return;
+    }
+
+    result.innerHTML =
+      '<div class="card loading">Searching movie...</div>';
+
+    try {
+
+      const searchURL =
+        "https://api.themoviedb.org/3/search/movie" +
+        "?api_key=" +
+        encodeURIComponent(API_KEY) +
+        "&query=" +
+        encodeURIComponent(movieName);
+
+      const searchResponse = await fetch(searchURL);
+
+      if (!searchResponse.ok) {
+        throw new Error("Search request failed.");
+      }
+
+      const searchData = await searchResponse.json();
+
+      if (
+        !searchData.results ||
+        searchData.results.length === 0
+      ) {
+        result.innerHTML =
+          '<div class="card error">Movie not found.</div>';
+        return;
+      }
+
+      const firstMovie = searchData.results[0];
+
+      const detailsURL =
+        `https://api.themoviedb.org/3/movie/${firstMovie.id}` +
+        `?api_key=${encodeURIComponent(API_KEY)}` +
+        `&append_to_response=credits`;
+
+      const detailsResponse = await fetch(detailsURL);
+
+      if (!detailsResponse.ok) {
+        throw new Error("Movie details request failed.");
+      }
+
+      const movie = await detailsResponse.json();
+
+      const title =
+        movie.title || "Unknown";
+
+      const originalTitle =
+        movie.original_title || title;
+
+      const releaseDate =
+        movie.release_date || "Not available";
+
+      const year =
+        movie.release_date
+          ? movie.release_date.split("-")[0]
+          : "N/A";
+
+      const runtime =
+        movie.runtime
+          ? movie.runtime + " min"
+          : "N/A";
+
+      const rating =
+        typeof movie.vote_average === "number"
+          ? movie.vote_average.toFixed(1)
+          : "N/A";
+
+      const genres =
+        movie.genres && movie.genres.length
+          ? movie.genres.map(g => g.name).join(", ")
+          : "N/A";
+
+      const language =
+        movie.original_language
+          ? movie.original_language.toUpperCase()
+          : "N/A";
+
+      const overview =
+        movie.overview ||
+        "No description available.";
+
+      const poster =
+        movie.poster_path
+          ? POSTER_BASE + movie.poster_path
+          : "";
+
+      const backdrop =
+        movie.backdrop_path
+          ? IMAGE_BASE + movie.backdrop_path
+          : "";
+
+      const cast =
+        movie.credits &&
+        movie.credits.cast &&
+        movie.credits.cast.length
+          ? movie.credits.cast
+              .slice(0, 6)
+              .map(person => person.name)
+              .join(", ")
+          : "N/A";
+
+      const director =
+        movie.credits &&
+        movie.credits.crew
+          ? (
+              movie.credits.crew.find(
+                person => person.job === "Director"
+              ) || {}
+            ).name || "N/A"
+          : "N/A";
+
+      const keywordsText =
+        `${title}, ${year}, ${genres}, ${language}, movie`;
+
+      const bloggerHTML = `
+<div class="nova-movie-info">
+
+  <div class="nova-movie-header">
+
+    ${
+      poster
+        ? `<img
+      src="${poster}"
+      alt="${escapeHTML(title)} Poster"
+      style="
+        width:220px;
+        max-width:100%;
+        border-radius:14px;
+        display:block;
+        margin-bottom:20px;
+      "
+    />`
+        : ""
+    }
+
+    <h2>${escapeHTML(title)}</h2>
+
+    <p>
+      <strong>Original Title:</strong>
+      ${escapeHTML(originalTitle)}
+    </p>
+
+    <p>
+      <strong>Release Date:</strong>
+      ${escapeHTML(releaseDate)}
+    </p>
+
+    <p>
+      <strong>Year:</strong>
+      ${escapeHTML(year)}
+    </p>
+
+    <p>
+      <strong>Genre:</strong>
+      ${escapeHTML(genres)}
+    </p>
+
+    <p>
+      <strong>Runtime:</strong>
+      ${escapeHTML(runtime)}
+    </p>
+
+    <p>
+      <strong>Language:</strong>
+      ${escapeHTML(language)}
+    </p>
+
+    <p>
+      <strong>TMDb Rating:</strong>
+      ${escapeHTML(rating)}
+    </p>
+
+    <p>
+      <strong>Director:</strong>
+      ${escapeHTML(director)}
+    </p>
+
+    <p>
+      <strong>Cast:</strong>
+      ${escapeHTML(cast)}
+    </p>
+
+  </div>
+
+  <h3>About this title</h3>
+
+  <p>
+    ${escapeHTML(overview)}
+  </p>
+
+  ${
+    backdrop
+      ? `
+  <img
+    src="${backdrop}"
+    alt="${escapeHTML(title)} Backdrop"
+    style="
+      width:100%;
+      border-radius:14px;
+      margin-top:15px;
+    "
+  />`
+      : ""
+  }
+
+</div>
+      `.trim();
+
+      const normalContent = `
+Title:
+${title}
+
+Original Title:
+${originalTitle}
+
+Release Date:
+${releaseDate}
+
+Year:
+${year}
+
+Genre:
+${genres}
+
+Runtime:
+${runtime}
+
+Language:
+${language}
+
+TMDb Rating:
+${rating}
+
+Director:
+${director}
+
+Top Cast:
+${cast}
+
+About this title:
+${overview}
+
+Keywords:
+${keywordsText}
+
+Poster:
+${poster || "Not available"}
+
+Backdrop:
+${backdrop || "Not available"}
+      `.trim();
+
+      result.innerHTML = `
+        <div class="card">
+
+          <div class="movie-grid">
+
+            <div>
+              ${
+                poster
+                  ? `<img
+                       class="poster"
+                       src="${poster}"
+                       alt="${escapeHTML(title)}"
+                     />`
+                  : "<p>No poster available.</p>"
+              }
+            </div>
+
+            <div>
+
+              <h2>${escapeHTML(title)}</h2>
+
+              <div class="meta">
+                <span class="pill">Year: ${escapeHTML(year)}</span>
+                <span class="pill">Rating: ${escapeHTML(rating)}</span>
+                <span class="pill">Runtime: ${escapeHTML(runtime)}</span>
+                <span class="pill">Language: ${escapeHTML(language)}</span>
+              </div>
+
+              <p>
+                <strong>Genre:</strong>
+                ${escapeHTML(genres)}
+              </p>
+
+              <p>
+                <strong>Director:</strong>
+                ${escapeHTML(director)}
+              </p>
+
+              <p>
+                <strong>Cast:</strong>
+                ${escapeHTML(cast)}
+              </p>
+
+              <h3>About this title</h3>
+
+              <p class="overview">
+                ${escapeHTML(overview)}
+              </p>
+
+            </div>
+
+          </div>
+
+          ${
+            backdrop
+              ? `<img
+                   class="backdrop"
+                   src="${backdrop}"
+                   alt="${escapeHTML(title)} Backdrop"
+                 />`
+              : ""
+          }
+
+        </div>
+
+        <div class="card">
+
+          <h3>Generated Movie Content</h3>
+
+          <textarea id="normalContent">${escapeTextarea(
+            normalContent
+          )}</textarea>
+
+          <div class="copy-row">
+            <button onclick="copyContent('normalContent')">
+              Copy Content
+            </button>
+          </div>
+
+        </div>
+
+        <div class="card">
+
+          <h3>Ready Blogger HTML</h3>
+
+          <textarea id="bloggerHTML">${escapeTextarea(
+            bloggerHTML
+          )}</textarea>
+
+          <div class="copy-row">
+            <button onclick="copyContent('bloggerHTML')">
+              Copy Blogger HTML
+            </button>
+          </div>
+
+        </div>
+      `;
+
+    } catch (error) {
+
+      console.error(error);
+
+      result.innerHTML = `
+        <div class="card error">
+          Something went wrong.
+          Check your TMDb API key and internet connection.
+        </div>
+      `;
+
+    }
+  }
+
+
+  async function copyContent(id) {
+
+    const textarea =
+      document.getElementById(id);
+
+    try {
+
+      await navigator.clipboard.writeText(
+        textarea.value
+      );
+
+      alert("Copied!");
+
+    } catch (error) {
+
+      textarea.select();
+
+      document.execCommand("copy");
+
+      alert("Copied!");
+
+    }
+  }
+
+
+  function escapeHTML(value) {
+
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+  function escapeTextarea(value) {
+
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+</script>
+
+</body>
+</html>
