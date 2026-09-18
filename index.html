@@ -32,29 +32,20 @@
       margin-bottom: 24px;
     }
 
-    .input-group {
-      margin-bottom: 14px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 7px;
-      font-weight: 700;
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 25px;
     }
 
     input {
-      width: 100%;
+      flex: 1;
       padding: 14px;
       border-radius: 10px;
       border: 1px solid #2b3140;
       background: #121722;
       color: #fff;
       font-size: 16px;
-    }
-
-    input:focus {
-      outline: none;
-      border-color: #f5a623;
     }
 
     button {
@@ -65,7 +56,6 @@
       font-weight: 700;
       background: #f5a623;
       color: #111;
-      margin-top: 5px;
     }
 
     button:hover {
@@ -82,12 +72,19 @@
 
     .movie-grid {
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 260px 1fr;
       gap: 24px;
     }
 
     .poster {
       width: 100%;
+      border-radius: 14px;
+      display: block;
+    }
+
+    .backdrop {
+      width: 100%;
+      margin-top: 20px;
       border-radius: 14px;
       display: block;
     }
@@ -104,6 +101,7 @@
       border-radius: 999px;
       background: #1d2432;
       border: 1px solid #2e3748;
+      color: #d9deea;
       font-size: 14px;
     }
 
@@ -112,37 +110,23 @@
       color: #d5d9e2;
     }
 
-    .player-wrap {
-      position: relative;
-      width: 100%;
-      padding-top: 56.25%;
-      background: #000;
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .player-wrap iframe {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      border: 0;
-    }
-
     textarea {
       width: 100%;
-      min-height: 320px;
+      min-height: 260px;
       margin-top: 12px;
       padding: 15px;
       border-radius: 12px;
       border: 1px solid #2b3140;
       background: #0c111b;
       color: #fff;
+      resize: vertical;
       font-family: Consolas, monospace;
       font-size: 13px;
       line-height: 1.5;
-      resize: vertical;
+    }
+
+    .copy-row {
+      margin-top: 10px;
     }
 
     .error {
@@ -156,6 +140,10 @@
     @media (max-width: 760px) {
       body {
         padding: 15px;
+      }
+
+      .search-box {
+        flex-direction: column;
       }
 
       .movie-grid {
@@ -172,62 +160,59 @@
 
 <body>
 
-<div class="container">
+  <div class="container">
 
-  <h1>Movie Content Generator</h1>
+    <h1>Movie Content Generator</h1>
+    <div class="sub">
+      Search any movie and generate ready content for your Blogger post.
+    </div>
 
-  <div class="sub">
-    Search movie + add Abyss player + generate ready Blogger HTML.
+    <div class="search-box">
+      <input
+        id="movieName"
+        type="text"
+        placeholder="Example: Doraemon Nobita and the New Steel Troops"
+      />
+      <button onclick="searchMovie()">Search Movie</button>
+    </div>
+
+    <div id="result"></div>
+
   </div>
-
-  <div class="input-group">
-    <label>Movie Name</label>
-    <input
-      id="movieName"
-      type="text"
-      placeholder="Example: Jawan"
-    />
-  </div>
-
-  <div class="input-group">
-    <label>Abyss Player URL or Iframe</label>
-    <input
-      id="abyssInput"
-      type="text"
-      placeholder="https://player.abyssplayer.com/WZmzBKE18"
-    />
-  </div>
-
-  <button onclick="searchMovie()">Generate Movie Content</button>
-
-  <div id="result"></div>
-
-</div>
 
 <script>
 
-  // ============================================
-  // PUT YOUR TMDB API KEY HERE
-  // ============================================
-  const API_KEY = "2453b53d5bae160b2c2b18d4d80791ba";
-  // ============================================
+  // ======================================================
+  // PASTE YOUR NEW TMDB API KEY HERE
+  // ======================================================
 
+  const API_KEY = "2453b53d5bae160b2c2b18d4d80791ba";
+
+  // ======================================================
+
+  const IMAGE_BASE = "https://image.tmdb.org/t/p/original";
   const POSTER_BASE = "https://image.tmdb.org/t/p/w500";
+
+  document
+    .getElementById("movieName")
+    .addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        searchMovie();
+      }
+    });
 
   async function searchMovie() {
 
-    const movieName =
-      document.getElementById("movieName").value.trim();
+    const movieName = document
+      .getElementById("movieName")
+      .value
+      .trim();
 
-    const abyssInput =
-      document.getElementById("abyssInput").value.trim();
-
-    const result =
-      document.getElementById("result");
+    const result = document.getElementById("result");
 
     if (!movieName) {
       result.innerHTML =
-        '<div class="card error">Please enter movie name.</div>';
+        '<div class="card error">Please enter a movie name.</div>';
       return;
     }
 
@@ -243,15 +228,13 @@
         "&query=" +
         encodeURIComponent(movieName);
 
-      const searchResponse =
-        await fetch(searchURL);
+      const searchResponse = await fetch(searchURL);
 
       if (!searchResponse.ok) {
-        throw new Error("TMDb search failed.");
+        throw new Error("Search request failed.");
       }
 
-      const searchData =
-        await searchResponse.json();
+      const searchData = await searchResponse.json();
 
       if (
         !searchData.results ||
@@ -262,125 +245,124 @@
         return;
       }
 
-      const firstMovie =
-        searchData.results[0];
+      const firstMovie = searchData.results[0];
 
       const detailsURL =
         `https://api.themoviedb.org/3/movie/${firstMovie.id}` +
         `?api_key=${encodeURIComponent(API_KEY)}` +
         `&append_to_response=credits`;
 
-      const detailsResponse =
-        await fetch(detailsURL);
+      const detailsResponse = await fetch(detailsURL);
 
       if (!detailsResponse.ok) {
-        throw new Error("Movie details failed.");
+        throw new Error("Movie details request failed.");
       }
 
-      const movie =
-        await detailsResponse.json();
+      const movie = await detailsResponse.json();
 
       const title =
-        movie.title || "";
+        movie.title || "Unknown";
+
+      const originalTitle =
+        movie.original_title || title;
+
+      const releaseDate =
+        movie.release_date || "Not available";
 
       const year =
         movie.release_date
           ? movie.release_date.split("-")[0]
-          : "";
-
-      const genres =
-        movie.genres && movie.genres.length
-          ? movie.genres.map(g => g.name).join(", ")
-          : "";
-
-      const rating =
-        typeof movie.vote_average === "number"
-          ? movie.vote_average.toFixed(1)
-          : "";
+          : "N/A";
 
       const runtime =
         movie.runtime
           ? movie.runtime + " min"
-          : "";
+          : "N/A";
+
+      const rating =
+        typeof movie.vote_average === "number"
+          ? movie.vote_average.toFixed(1)
+          : "N/A";
+
+      const genres =
+        movie.genres && movie.genres.length
+          ? movie.genres.map(g => g.name).join(", ")
+          : "N/A";
 
       const language =
         movie.original_language
           ? movie.original_language.toUpperCase()
-          : "";
+          : "N/A";
 
       const overview =
-        movie.overview || "";
+        movie.overview ||
+        "No description available.";
 
       const poster =
         movie.poster_path
           ? POSTER_BASE + movie.poster_path
           : "";
 
-      const cast =
-        movie.credits &&
-        movie.credits.cast
-          ? movie.credits.cast
-              .slice(0, 6)
-              .map(x => x.name)
-              .join(", ")
+      const backdrop =
+        movie.backdrop_path
+          ? IMAGE_BASE + movie.backdrop_path
           : "";
 
-      let director = "";
+      const cast =
+        movie.credits &&
+        movie.credits.cast &&
+        movie.credits.cast.length
+          ? movie.credits.cast
+              .slice(0, 6)
+              .map(person => person.name)
+              .join(", ")
+          : "N/A";
 
-      if (
+      const director =
         movie.credits &&
         movie.credits.crew
-      ) {
-        const foundDirector =
-          movie.credits.crew.find(
-            x => x.job === "Director"
-          );
+          ? (
+              movie.credits.crew.find(
+                person => person.job === "Director"
+              ) || {}
+            ).name || "N/A"
+          : "N/A";
 
-        director =
-          foundDirector
-            ? foundDirector.name
-            : "";
-      }
-
-      const playerHTML =
-        buildPlayerHTML(abyssInput);
+      const keywordsText =
+        `${title}, ${year}, ${genres}, ${language}, movie`;
 
       const bloggerHTML = `
-${playerHTML}
+<div class="nova-movie-info">
 
-<div class="nova-generated-movie"
-     style="
-       display:grid;
-       grid-template-columns:220px 1fr;
-       gap:24px;
-       margin-top:24px;
-       align-items:start;
-     ">
+  <div class="nova-movie-header">
 
-  <div>
     ${
       poster
-        ? `
-    <img
+        ? `<img
       src="${poster}"
       alt="${escapeHTML(title)} Poster"
       style="
-        width:100%;
-        max-width:220px;
+        width:220px;
+        max-width:100%;
         border-radius:14px;
         display:block;
+        margin-bottom:20px;
       "
-    />
-    `
+    />`
         : ""
     }
-  </div>
 
-  <div>
+    <h2>${escapeHTML(title)}</h2>
 
-    <h2 style="margin-top:0;">
-      ${escapeHTML(title)}
-    </h2>
+    <p>
+      <strong>Original Title:</strong>
+      ${escapeHTML(originalTitle)}
+    </p>
+
+    <p>
+      <strong>Release Date:</strong>
+      ${escapeHTML(releaseDate)}
+    </p>
 
     <p>
       <strong>Year:</strong>
@@ -419,58 +401,88 @@ ${playerHTML}
 
   </div>
 
-</div>
-
-<div style="margin-top:28px;">
-
   <h3>About this title</h3>
 
-  <p style="line-height:1.7;">
+  <p>
     ${escapeHTML(overview)}
   </p>
 
+  ${
+    backdrop
+      ? `
+  <img
+    src="${backdrop}"
+    alt="${escapeHTML(title)} Backdrop"
+    style="
+      width:100%;
+      border-radius:14px;
+      margin-top:15px;
+    "
+  />`
+      : ""
+  }
+
 </div>
+      `.trim();
 
-<style>
-@media (max-width: 768px) {
-  .nova-generated-movie {
-    grid-template-columns: 1fr !important;
-  }
+      const normalContent = `
+Title:
+${title}
 
-  .nova-generated-movie img {
-    max-width: 280px !important;
-    margin: 0 auto !important;
-  }
-}
-</style>
+Original Title:
+${originalTitle}
+
+Release Date:
+${releaseDate}
+
+Year:
+${year}
+
+Genre:
+${genres}
+
+Runtime:
+${runtime}
+
+Language:
+${language}
+
+TMDb Rating:
+${rating}
+
+Director:
+${director}
+
+Top Cast:
+${cast}
+
+About this title:
+${overview}
+
+Keywords:
+${keywordsText}
+
+Poster:
+${poster || "Not available"}
+
+Backdrop:
+${backdrop || "Not available"}
       `.trim();
 
       result.innerHTML = `
-
         <div class="card">
-
-          ${
-            playerHTML
-              ? `
-              <h2>Player Preview</h2>
-              ${playerHTML}
-              `
-              : ""
-          }
 
           <div class="movie-grid">
 
             <div>
               ${
                 poster
-                  ? `
-                  <img
-                    class="poster"
-                    src="${poster}"
-                    alt="${escapeHTML(title)}"
-                  />
-                  `
-                  : "No poster available"
+                  ? `<img
+                       class="poster"
+                       src="${poster}"
+                       alt="${escapeHTML(title)}"
+                     />`
+                  : "<p>No poster available.</p>"
               }
             </div>
 
@@ -479,23 +491,10 @@ ${playerHTML}
               <h2>${escapeHTML(title)}</h2>
 
               <div class="meta">
-
-                <span class="pill">
-                  Year: ${escapeHTML(year)}
-                </span>
-
-                <span class="pill">
-                  Rating: ${escapeHTML(rating)}
-                </span>
-
-                <span class="pill">
-                  Runtime: ${escapeHTML(runtime)}
-                </span>
-
-                <span class="pill">
-                  Language: ${escapeHTML(language)}
-                </span>
-
+                <span class="pill">Year: ${escapeHTML(year)}</span>
+                <span class="pill">Rating: ${escapeHTML(rating)}</span>
+                <span class="pill">Runtime: ${escapeHTML(runtime)}</span>
+                <span class="pill">Language: ${escapeHTML(language)}</span>
               </div>
 
               <p>
@@ -523,17 +522,47 @@ ${playerHTML}
 
           </div>
 
+          ${
+            backdrop
+              ? `<img
+                   class="backdrop"
+                   src="${backdrop}"
+                   alt="${escapeHTML(title)} Backdrop"
+                 />`
+              : ""
+          }
+
+        </div>
+
+        <div class="card">
+
+          <h3>Generated Movie Content</h3>
+
+          <textarea id="normalContent">${escapeTextarea(
+            normalContent
+          )}</textarea>
+
+          <div class="copy-row">
+            <button onclick="copyContent('normalContent')">
+              Copy Content
+            </button>
+          </div>
+
         </div>
 
         <div class="card">
 
           <h3>Ready Blogger HTML</h3>
 
-          <textarea id="bloggerHTML">${escapeTextarea(bloggerHTML)}</textarea>
+          <textarea id="bloggerHTML">${escapeTextarea(
+            bloggerHTML
+          )}</textarea>
 
-          <button onclick="copyHTML()">
-            Copy Blogger HTML
-          </button>
+          <div class="copy-row">
+            <button onclick="copyContent('bloggerHTML')">
+              Copy Blogger HTML
+            </button>
+          </div>
 
         </div>
       `;
@@ -542,81 +571,45 @@ ${playerHTML}
 
       console.error(error);
 
-      result.innerHTML =
-        '<div class="card error">Something went wrong. Check TMDb API key.</div>';
+      result.innerHTML = `
+        <div class="card error">
+          Something went wrong.
+          Check your TMDb API key and internet connection.
+        </div>
+      `;
+
     }
   }
 
-  function buildPlayerHTML(input) {
 
-    if (!input) {
-      return "";
+  async function copyContent(id) {
+
+    const textarea =
+      document.getElementById(id);
+
+    try {
+
+      await navigator.clipboard.writeText(
+        textarea.value
+      );
+
+      alert("Copied!");
+
+    } catch (error) {
+
+      textarea.select();
+
+      document.execCommand("copy");
+
+      alert("Copied!");
+
     }
-
-    if (
-      input.toLowerCase().includes("<iframe")
-    ) {
-      const srcMatch =
-        input.match(/src=["']([^"']+)["']/i);
-
-      if (!srcMatch) {
-        return "";
-      }
-
-      input =
-        srcMatch[1];
-    }
-
-    if (
-      !input.startsWith("https://")
-    ) {
-      return "";
-    }
-
-    return `
-<div
-  style="
-    position:relative;
-    width:100%;
-    padding-top:56.25%;
-    background:#000;
-    overflow:hidden;
-    border-radius:14px;
-  "
->
-  <iframe
-    src="${escapeHTML(input)}"
-    style="
-      position:absolute;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
-      border:0;
-    "
-    scrolling="no"
-    allowfullscreen
-    loading="lazy"
-  ></iframe>
-</div>
-    `.trim();
   }
 
-  function copyHTML() {
-
-    const text =
-      document.getElementById("bloggerHTML");
-
-    navigator.clipboard
-      .writeText(text.value)
-      .then(() => {
-        alert("Blogger HTML copied!");
-      });
-  }
 
   function escapeHTML(value) {
 
-    return String(value || "")
+    return String(value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;")
@@ -624,9 +617,10 @@ ${playerHTML}
       .replaceAll("'", "&#039;");
   }
 
+
   function escapeTextarea(value) {
 
-    return String(value || "")
+    return String(value)
       .replaceAll("&", "&amp;")
       .replaceAll("<", "&lt;")
       .replaceAll(">", "&gt;");
